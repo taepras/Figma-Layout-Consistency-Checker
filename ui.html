@@ -1,0 +1,288 @@
+<style>
+  * {
+    font-family: sans-serif;
+  }
+
+  .result-table {
+    width: 100%;
+    margin-top: 20px;
+  }
+
+  .result-table td,
+  .result-table th {
+    text-align: left;
+    font-size: 0.875rem;
+    padding: 2px 0;
+  }
+
+  .mb-1 {
+    margin-bottom: 10px;
+  }
+
+  .mb-2 {
+    margin-bottom: 20px;
+  }
+
+  .invisible-layer {
+    opacity: 0.4;
+  }
+</style>
+
+<h2>Auto Layout Inspector</h2>
+<div style="display: flex" class="mb-2">
+  <div style="flex-grow: 1">
+    <button id="inspect-auto-layout">Inspect</button>
+    <button id="select-reset">Refresh Inspection</button>
+  </div>
+  <div>
+    <label>Sort By:</label>
+    <select id="sort-select" onchange="drawFramesSorted()">
+      <option value="layoutConfig">Layout Config</option>
+      <option disabled>-----</option>
+      <option value="name">Layer Name</option>
+      <option disabled>-----</option>
+      <option value="itemSpacing">Gap</option>
+      <option value="paddingTop">Top Padding</option>
+      <option value="paddingRight">Right Padding</option>
+      <option value="paddingBottom">Bottom Padding</option>
+      <option value="paddingLeft">Left Padding</option>
+      <option disabled>-----</option>
+      <option value="index">Layer Order</option>
+    </select>
+  </div>
+</div>
+<div class="mb-1" id="summary"></div>
+<div class="mb-2">
+  <table class="result-table">
+    <thead>
+      <tr>
+        <th>Layer Name</th>
+        <th>Layout</th>
+        <th>Gap</th>
+        <th>PX</th>
+        <th>PY</th>
+        <th>Select</th>
+      </tr>
+    </thead>
+    <tbody id="result">
+      <tr>
+        <td colspan="99">Scanning Selected Layers...</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<script>
+  const DIRECTION_SYMBOL = {
+    HORIZONTAL: "➡️",
+    VERTICAL: "⬇️",
+  };
+
+  const r = (x) => Math.round(x * 100) / 100;
+  const allEqual = (arr) => arr.every((v) => v === arr[0]);
+
+  function drawTable(framesList, subHeaderKey) {
+    const resultElem = document.getElementById("result");
+    resultElem.innerHTML = "";
+    console.log("got this from the plugin code", framesList);
+    let lastValue = -1;
+    let differentValuesCount = 0;
+    for (let i in framesList) {
+      if (subHeaderKey && subHeaderKey !== "index") {
+        // console.log(
+        //   lastValue,
+        //   subHeaderKey,
+        //   framesList[i],
+        //   framesList[i][subHeaderKey]
+        // );
+        const currentValue = framesList[i][subHeaderKey];
+
+        if (lastValue != currentValue) {
+          differentValuesCount++;
+          const framesWithSameProp = framesList.filter(
+            (f) => f[subHeaderKey] == currentValue
+          );
+          const tableHeadingRow = document.createElement("tr");
+          tableHeadingRow.style.backgroundColor = "#eee";
+
+          const cellSubheader = document.createElement("th");
+          cellSubheader.colSpan = 5;
+          cellSubheader.style.textAlign = "left";
+          cellSubheader.innerHTML =
+            (isNaN(currentValue)
+              ? currentValue
+              : Math.round(currentValue * 100) / 100) +
+            ` (${framesWithSameProp.length} frames)` +
+            (subHeaderKey == "name"
+              ? allEqual(framesWithSameProp.map((f) => f.layoutConfig))
+                ? ""
+                : "⚠️"
+              : "");
+          tableHeadingRow.appendChild(cellSubheader);
+
+          const cellSelectAll = document.createElement("td");
+          tableHeadingRow.appendChild(cellSelectAll);
+
+          const selectAllButton = document.createElement("button");
+          selectAllButton.innerHTML = "Select All"; //framesList[i].name + ' : ' + framesList[i].itemSpacing + ' ' + framesList[i].layoutMode;
+          // selectButton.style.display = 'block';
+          selectAllButton.onclick = () => {
+            parent.postMessage(
+              {
+                pluginMessage: {
+                  type: "select",
+                  node: framesList.filter(
+                    (f) => f[subHeaderKey] == framesList[i][subHeaderKey]
+                  ),
+                },
+              },
+              "*"
+            );
+          };
+          cellSelectAll.appendChild(selectAllButton);
+
+          resultElem.appendChild(tableHeadingRow);
+        }
+        lastValue = framesList[i][subHeaderKey];
+      }
+
+      const tableRow = document.createElement("tr");
+      if (!framesList[i].visible) {
+        tableRow.classList.add("invisible-layer");
+      }
+
+      const cellFrameName = document.createElement("td");
+      cellFrameName.innerHTML =
+        framesList[i].type == "INSTANCE"
+          ? "🟪 "
+          : framesList[i].isUnderComponent
+          ? "→🟪 "
+          : framesList[i].type == "COMPONENT"
+          ? "🟣 "
+          : "";
+      cellFrameName.innerHTML += framesList[i].name;
+      tableRow.appendChild(cellFrameName);
+
+      const cellDirection = document.createElement("td");
+      cellDirection.innerHTML = DIRECTION_SYMBOL[framesList[i].layoutMode];
+      tableRow.appendChild(cellDirection);
+
+      const cellSpacing = document.createElement("td");
+      cellSpacing.innerHTML =
+        framesList[i].primaryAxisAlignItems == "SPACE_BETWEEN"
+          ? "Auto"
+          : r(framesList[i].itemSpacing);
+      tableRow.appendChild(cellSpacing);
+
+      const cellPx = document.createElement("td");
+      cellPx.innerHTML = framesList[i].px;
+      tableRow.appendChild(cellPx);
+
+      const cellPy = document.createElement("td");
+      cellPy.innerHTML = framesList[i].py;
+      tableRow.appendChild(cellPy);
+
+      const cellSelect = document.createElement("td");
+      tableRow.appendChild(cellSelect);
+
+      const selectButton = document.createElement("button");
+      selectButton.innerHTML = "Select"; //framesList[i].name + ' : ' + framesList[i].itemSpacing + ' ' + framesList[i].layoutMode;
+      // selectButton.style.display = 'block';
+      selectButton.onclick = (e) => {
+        console.log(e);
+        console.log(window.event);
+        parent.postMessage(
+          {
+            pluginMessage: {
+              type: "select",
+              node: [framesList[i]],
+              append: (e || window.event).shiftKey,
+            },
+          },
+          "*"
+        );
+      };
+      // console.log('>>', framesList[i], framesList);
+      cellSelect.appendChild(selectButton);
+
+      resultElem.appendChild(tableRow);
+    }
+    document.getElementById(
+      "summary"
+    ).innerHTML = `${differentValuesCount} different values found for property "${subHeaderKey}"`;
+  }
+
+  // ######################################################################
+  // ######################################################################
+  // ######################################################################
+
+  let frames = [];
+
+  parent.postMessage({ pluginMessage: { type: "inspect-auto-layout" } }, "*");
+
+  document.getElementById("inspect-auto-layout").onclick = () => {
+    parent.postMessage({ pluginMessage: { type: "inspect-auto-layout" } }, "*");
+  };
+
+  document.getElementById("select-reset").onclick = () => {
+    parent.postMessage({ pluginMessage: { type: "select-reset" } }, "*");
+  };
+
+  onmessage = (event) => {
+    // incoming selected frames data
+    frames = event.data.pluginMessage.filter(f => f.type !== "SECTION");
+    console.log('received frames:', frames);
+
+    // preprocessing
+    frames.forEach((f) => {
+      f.px =
+        f.paddingLeft == f.paddingRight
+          ? r(f.paddingLeft)
+          : `${r(f.paddingLeft)}, ${r(f.paddingRight)}`;
+      f.py =
+        f.paddingTop == f.paddingBottom
+          ? r(f.paddingTop)
+          : `${r(f.paddingTop)}, ${r(f.paddingBottom)}`;
+      f.layoutConfig = `${DIRECTION_SYMBOL[f.layoutMode]}, `;
+      f.layoutConfig += `g: ${f.itemSpacing}, p: ${f.paddingTop} ${f.paddingRight} ${f.paddingBottom} ${f.paddingLeft}`;
+    });
+
+    // draw table
+    drawFramesSorted();
+  };
+
+  let compareItemSpacing = (a, b) => {
+    if (a.itemSpacing == "Auto" && b.itemSpacing == "Auto") return 0;
+    let asp = a.itemSpacing == "Auto" ? Infinity : a.itemSpacing;
+    let bsp = b.itemSpacing == "Auto" ? Infinity : b.itemSpacing;
+    return asp - bsp;
+  };
+
+  let drawFramesSorted = () => {
+    let sortType = document.getElementById("sort-select").value;
+    console.log("sorting by", sortType);
+    if (sortType == "itemSpacing")
+      drawTable(
+        [...frames].sort((a, b) => {
+          return (
+            compareItemSpacing(a, b) ||
+            a.name.localeCompare(b.name) ||
+            a.index - b.index
+          );
+        }),
+        "itemSpacing"
+      );
+    else
+      drawTable(
+        [...frames].sort(
+          (a, b) =>
+            (typeof a[sortType] === "string"
+              ? a[sortType].localeCompare(b[sortType])
+              : a[sortType] - b[sortType]) ||
+            a.name.localeCompare(b.name) ||
+            a.layoutConfig.localeCompare(b.layoutConfig)
+        ),
+        sortType
+      );
+  };
+</script>
