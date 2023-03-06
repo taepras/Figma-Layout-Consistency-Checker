@@ -9,7 +9,7 @@ A Figma Plugin for inspecting selected components for auto layout values to ensu
 
 ## How to Install
 
-1. Download the .zip file from the [Release](https://github.com/taepras/Figma-Layout-Consistency-Checker/releases/tag/release) section.
+1. Download the .zip file from the [Releases](https://github.com/taepras/Figma-Layout-Consistency-Checker/releases/tag/release) section.
 2. Unzip the file.
 3. In Figma, go to Menu > Plugin > Developer > Import plugin from manifest.
 4. Select the manifest.json file located in the unzipped folder.
