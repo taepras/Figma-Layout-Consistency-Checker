@@ -1,18 +1,29 @@
+<link
+  rel="stylesheet"
+  href="https://cdn.jsdelivr.net/gh/thomas-lowry/figma-plugin-ds/dist/figma-plugin-ds.css"
+/>
+<script src="https://cdn.jsdelivr.net/gh/thomas-lowry/figma-plugin-ds/dist/iife/figma-plugin-ds.js"></script>
+<!-- <link rel="stylesheet" href="../node_modules/figma-plugin-ds/dist/figma-plugin-ds.css"> -->
+
 <style>
-  * {
-    font-family: sans-serif;
+  body {
+    padding: 20px;
+  }
+
+  .button {
+    display: inline-block;
   }
 
   .result-table {
     width: 100%;
     margin-top: 20px;
+    border-collapse: collapse;
   }
 
   .result-table td,
   .result-table th {
     text-align: left;
     font-size: 0.875rem;
-    padding: 2px 0;
   }
 
   .mb-1 {
@@ -26,13 +37,45 @@
   .invisible-layer {
     opacity: 0.4;
   }
+
+  td.placeholder {
+    opacity: 0.7;
+    padding: 20px 0;
+    text-align: center;
+  }
+
+  button.icon-button {
+    background: none;
+    border: none;
+  }
+
+  .result-table thead tr th {
+    border-bottom: 1px #eee solid;
+    padding: 10px 0;
+    background-color: var(--black8-opaque);
+    color: var(--white);
+  }
+
+  .result-table th:first-child,
+  .result-table td:first-child {
+    padding-left: 10px;
+  }
+
+  .result-table th:last-child,
+  .result-table td:last-child {
+    padding-right: 10px;
+  }
 </style>
 
-<h2>Auto Layout Inspector</h2>
+<h2>Layout Consistency Checker</h2>
 <div style="display: flex" class="mb-2">
   <div style="flex-grow: 1">
-    <button id="inspect-auto-layout">Inspect</button>
-    <button id="select-reset">Refresh Inspection</button>
+    <button id="inspect-auto-layout" class="button button--primary">
+      Inspect
+    </button>
+    <button id="select-reset" class="button button--secondary">
+      Refresh Inspection
+    </button>
   </div>
   <div>
     <label>Sort By:</label>
@@ -46,6 +89,7 @@
       <option value="paddingRight">Right Padding</option>
       <option value="paddingBottom">Bottom Padding</option>
       <option value="paddingLeft">Left Padding</option>
+      <option value="cornerRadius">Corner Radius</option>
       <option disabled>-----</option>
       <option value="index">Layer Order</option>
     </select>
@@ -84,9 +128,22 @@
   function drawTable(framesList, subHeaderKey) {
     const resultElem = document.getElementById("result");
     resultElem.innerHTML = "";
-    console.log("got this from the plugin code", framesList);
+    console.log("[UI] frames:", framesList);
     let lastValue = -1;
     let differentValuesCount = 0;
+
+    if (framesList.length == 0) {
+      const tableRow = document.createElement("tr");
+      
+      const cellInstructions = document.createElement("td");
+      cellInstructions.classList.add("placeholder");
+      cellInstructions.innerHTML = 'Select layers and click "Inspect"';
+      cellInstructions.colSpan = 99;
+      tableRow.appendChild(cellInstructions);
+
+      resultElem.appendChild(tableRow);
+    }
+
     for (let i in framesList) {
       if (subHeaderKey && subHeaderKey !== "index") {
         // console.log(
@@ -124,8 +181,12 @@
           tableHeadingRow.appendChild(cellSelectAll);
 
           const selectAllButton = document.createElement("button");
-          selectAllButton.innerHTML = "Select All"; //framesList[i].name + ' : ' + framesList[i].itemSpacing + ' ' + framesList[i].layoutMode;
-          // selectButton.style.display = 'block';
+          selectAllButton.classList.add("icon-button");
+
+          const selectAllIcon = document.createElement("div");
+          selectAllIcon.className = "icon icon--forward";
+          selectAllButton.appendChild(selectAllIcon);
+
           selectAllButton.onclick = () => {
             parent.postMessage(
               {
@@ -156,7 +217,7 @@
         framesList[i].type == "INSTANCE"
           ? "🟪 "
           : framesList[i].isUnderComponent
-          ? "→🟪 "
+          ? "⮡ 🟪 "
           : framesList[i].type == "COMPONENT"
           ? "🟣 "
           : "";
@@ -186,8 +247,13 @@
       tableRow.appendChild(cellSelect);
 
       const selectButton = document.createElement("button");
-      selectButton.innerHTML = "Select"; //framesList[i].name + ' : ' + framesList[i].itemSpacing + ' ' + framesList[i].layoutMode;
+      selectButton.classList.add("icon-button");
+      // selectButton.innerHTML = "Select"; //framesList[i].name + ' : ' + framesList[i].itemSpacing + ' ' + framesList[i].layoutMode;
       // selectButton.style.display = 'block';
+      const selectIcon = document.createElement("div");
+      selectIcon.className = "icon icon--forward";
+      selectButton.appendChild(selectIcon);
+
       selectButton.onclick = (e) => {
         console.log(e);
         console.log(window.event);
@@ -218,6 +284,8 @@
 
   let frames = [];
 
+  // selectMenu.init();
+
   parent.postMessage({ pluginMessage: { type: "inspect-auto-layout" } }, "*");
 
   document.getElementById("inspect-auto-layout").onclick = () => {
@@ -230,8 +298,8 @@
 
   onmessage = (event) => {
     // incoming selected frames data
-    frames = event.data.pluginMessage.filter(f => f.type !== "SECTION");
-    console.log('received frames:', frames);
+    frames = event.data.pluginMessage.filter((f) => f.type !== "SECTION");
+    console.log("received frames:", frames);
 
     // preprocessing
     frames.forEach((f) => {
@@ -244,17 +312,21 @@
           ? r(f.paddingTop)
           : `${r(f.paddingTop)}, ${r(f.paddingBottom)}`;
       f.layoutConfig = `${DIRECTION_SYMBOL[f.layoutMode]}, `;
-      f.layoutConfig += `g: ${f.itemSpacing}, p: ${f.paddingTop} ${f.paddingRight} ${f.paddingBottom} ${f.paddingLeft}`;
+      f.layoutConfig += `gap: ${r(f.itemSpacing)}, `;
+      f.layoutConfig += `p: ${r(f.paddingTop)} ${r(f.paddingRight)} ${r(
+        f.paddingBottom
+      )} ${r(f.paddingLeft)}`;
     });
 
     // draw table
     drawFramesSorted();
   };
 
-  let compareItemSpacing = (a, b) => {
-    if (a.itemSpacing == "Auto" && b.itemSpacing == "Auto") return 0;
-    let asp = a.itemSpacing == "Auto" ? Infinity : a.itemSpacing;
-    let bsp = b.itemSpacing == "Auto" ? Infinity : b.itemSpacing;
+  let compareValues = (a, b, key) => {
+    if (typeof a[key] == "string" && typeof b[key] == "string")
+      return a[key].localeCompare(b[key]);
+    let asp = typeof a[key] == "string" ? Infinity : a[key];
+    let bsp = typeof b[key] == "string" ? Infinity : b[key];
     return asp - bsp;
   };
 
@@ -265,7 +337,7 @@
       drawTable(
         [...frames].sort((a, b) => {
           return (
-            compareItemSpacing(a, b) ||
+            compareValues(a, b, sortType) ||
             a.name.localeCompare(b.name) ||
             a.index - b.index
           );
@@ -276,9 +348,7 @@
       drawTable(
         [...frames].sort(
           (a, b) =>
-            (typeof a[sortType] === "string"
-              ? a[sortType].localeCompare(b[sortType])
-              : a[sortType] - b[sortType]) ||
+            compareValues(a, b, sortType) ||
             a.name.localeCompare(b.name) ||
             a.layoutConfig.localeCompare(b.layoutConfig)
         ),

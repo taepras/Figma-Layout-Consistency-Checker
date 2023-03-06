@@ -74,6 +74,7 @@ const summarizeSelectedFrames = function () {
       isUnderComponent: isUnderComponent(f),
       visible: f.visible && !isUnderInvisibleComponent(f),
       type: f.type,
+      cornerRadius: f.cornerRadius == figma.mixed ? "Mixed" : f.cornerRadius,
     }))
   );
 };

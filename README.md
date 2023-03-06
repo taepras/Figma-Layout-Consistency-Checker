@@ -1,4 +1,4 @@
-# Layout Consistency Inspector
+# Layout Consistency Inspector for Figma
 
 A Figma Plugin for inspecting selected components for auto layout values including gaps & paddings to ensure consistency in UI design.
 
