@@ -1,8 +1,21 @@
 # Layout Consistency Inspector for Figma
 
-A Figma Plugin for inspecting selected components for auto layout values including gaps & paddings to ensure consistency in UI design.
+A Figma Plugin for inspecting selected components for auto layout values to ensure consistency in UI design. The values this plugin can help inspect include:
+- Layout Directions
+- Gap Sizes (Item Spacing)
+- Paddings
+- Corner Radius
+- More in the future?
 
-## Figma Plugin README
+## How to Install
+
+1. Download the .zip file from the Release section.
+2. Unzip the file.
+3. In Figma, go to Menu > Plugin > Developer > Import plugin from manifest.
+4. Select the manifest.json file located in the unzipped folder.
+5. Enjoy!
+
+## How to Develop (Figma Plugin README)
 
 Below are the steps to get your plugin running. You can also find instructions at:
 
