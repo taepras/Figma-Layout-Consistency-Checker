@@ -1,3 +1,9 @@
+# Layout Consistency Inspector
+
+A Figma Plugin for inspecting selected components for auto layout values including gaps & paddings to ensure consistency in UI design.
+
+## Figma Plugin README
+
 Below are the steps to get your plugin running. You can also find instructions at:
 
   https://www.figma.com/plugin-docs/plugin-quickstart/
